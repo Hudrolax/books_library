@@ -1,0 +1,59 @@
+[project]
+name = "book-library"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi==0.115.12",
+    "uvicorn==0.34.0",
+    "pydantic-settings==2.9.1",
+    "sqlalchemy[asyncio]==2.0.41",
+]
+
+########################################
+# 3) dev-зависимости
+########################################
+[project.optional-dependencies]
+dev = [
+  "pytest-asyncio==1.0.0",
+  "httpx==0.28.1",
+  "aiosqlite==0.21.0",
+  "mypy==1.16.0",
+  "types-passlib==1.7.7.20250602",
+  "types-python-jose==3.5.0.20250531",
+  "asgi-lifespan==2.1.0",
+  "pynvim"
+]
+
+########################################
+# 4) Где искать пакеты (каталог app/)
+########################################
+[tool.setuptools.packages.find]
+where = [""]               # корень пайтон-пакетов
+exclude = ["tests*"]
+
+
+########################################
+# 7) Линтеры / форматтеры
+########################################
+[tool.ruff]
+line-length    = 120
+target-version = "py312"
+src            = ["app"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # I — это isort-правила Ruff
+
+# Настройки сортировки импортов
+[tool.ruff.lint.isort]
+section-order = [
+    "future",           # FUTURE (как __future__)
+    "standard-library", # STDLIB
+    "third-party",      # THIRDPARTY
+    "first-party",      # FIRSTPARTY
+    "local-folder"      # LOCALFOLDER
+]
+lines-after-imports = 2
+force-sort-within-sections = true
+combine-as-imports = false
