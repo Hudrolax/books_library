@@ -1,11 +1,8 @@
-from unittest.mock import AsyncMock, Mock
-
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import StaticPool
 
-from domain.models.user import User
 
 Base = declarative_base()
 
@@ -33,4 +30,3 @@ async def async_session(async_engine):
     async_session_factory = async_sessionmaker(async_engine, expire_on_commit=False)
     async with async_session_factory() as session:  # type: ignore
         yield session
-
