@@ -22,4 +22,6 @@ class IBookService(ABC):
 
     @abstractmethod
     async def list(self, filters: BookDict) -> List[Book]: ...
-    
+
+    @abstractmethod
+    async def search(self, query: str) -> List[Book]: ...

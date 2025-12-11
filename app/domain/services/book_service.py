@@ -20,3 +20,5 @@ class BookService(IBookService):
     async def list(self, filters: BookDict) -> List[Book]:
         return await self.repository.list(filters=filters)
 
+    async def search(self, query: str) -> List[Book]:
+        return await self.repository.search(query=query)

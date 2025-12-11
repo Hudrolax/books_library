@@ -1,8 +1,8 @@
 from typing import Any, AsyncGenerator
 
-import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
+import pytest
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     async_sessionmaker,
@@ -43,6 +43,68 @@ async def async_connection(async_engine) -> AsyncGenerator[AsyncConnection, None
 async def session(async_connection):
     async_session_factory = async_sessionmaker(bind=async_connection, expire_on_commit=False)
     async with async_session_factory() as session:
+        # Create Tables
+        from infrastructure.db.db import Base
+        from infrastructure.db.models.book_orm import BookORM
+
+        # Sync run because create_all is not async directly on connection easily without run_sync
+        await async_connection.run_sync(Base.metadata.create_all)
+
+        # Initialize FTS
+        # We need to do this manually via raw SQL on the connection or session
+        # Use underlying sync connection for sqlite3 specific fts creation if possible,
+        # or just execute valid SQL via text()
+
+        from sqlalchemy import text
+
+        await session.execute(
+            text("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS books_fts USING fts5(
+                title, 
+                author, 
+                content='books', 
+                content_rowid='id'
+            );
+        """)
+        )
+        await session.execute(text("INSERT INTO books_fts(books_fts) VALUES('rebuild');"))
+
+        # Load Data from Fixture
+        import json
+        import os
+
+        # Path relative to app/tests/integration/conftest.py?
+        # app/tests/integration/../../tests/fixtures/akunin_books.json -> app/tests/fixtures/akunin_books.json
+        # Running inside container, workdir /app. Fixtures are at /app/tests/fixtures if copied?
+        # Dockerfile COPY app /app.
+        # wait, app/tests/fixtures is inside app folder?
+        # Yes, I created app/tests/fixtures.
+
+        fixture_path = "/app/tests/fixtures/akunin_books.json"
+
+        # Fallback for local run if path differs (optional)
+        if not os.path.exists(fixture_path):
+            # Try relative
+            fixture_path = os.path.join(os.path.dirname(__file__), "../fixtures/akunin_books.json")
+
+        if os.path.exists(fixture_path):
+            with open(fixture_path, "r") as f:
+                books_data = json.load(f)
+
+            for b in books_data:
+                # Filter out keys not in ORM (if any extra in DB extraction)
+                # BookORM has specific fields.
+                # extract_fixture.py did "select *", so columns should match.
+                # However, BookORM might not have ALL columns if I missed some in definition?
+                # I defined BookORM with all columns from 'schema books' output. Should be fine.
+                book = BookORM(**b)
+                session.add(book)
+            await session.commit()
+
+            # Update FTS after insert
+            await session.execute(text("INSERT INTO books_fts(books_fts) VALUES('rebuild');"))
+            await session.commit()
+
         yield session
 
 

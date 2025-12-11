@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 LogLevels = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
