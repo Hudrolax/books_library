@@ -21,4 +21,13 @@ class BookService(IBookService):
         return await self.repository.list(filters=filters)
 
     async def search(self, query: str) -> List[Book]:
-        return await self.repository.search(query=query)
+        limit = 20
+        # Запрашиваем на 1 больше, чтобы понять, есть ли еще результаты
+        books = await self.repository.search(query=query, limit=limit + 1)
+
+        if len(books) > limit:
+            from domain.exceptions import TooManyResultsError
+
+            raise TooManyResultsError("Found too many matching books. Please refine your search.")
+
+        return books

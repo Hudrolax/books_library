@@ -9,5 +9,5 @@ from infrastructure.repositories.book_repo import BookRepo
 
 
 async def get_book_service(db: AsyncSession = Depends(get_db)) -> BookService:
-    repo = BookRepo(db, Book, BookORM)
+    repo: BookRepo = BookRepo(db, Book, BookORM)
     return BookService(repo)

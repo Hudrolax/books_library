@@ -1,4 +1,4 @@
-from typing import Generic
+from typing import Any, Generic
 
 from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,20 +16,27 @@ class BookRepo(
     ListMixin[TDomain, TOrm, BookDict, BookFields],
     Generic[TDomain, TOrm, TTypedDict],
 ):
-    async def search(self, query: str) -> list[TDomain]:
+    async def search(self, query: str, limit: int | None = None) -> list[TDomain]:
         # Используем FTS5 поиск с сортировкой по релевантности (rank)
         # books_fts - это виртуальная таблица
+
+        limit_clause = "LIMIT :limit" if limit else ""
+
         stmt = select(self.orm_class).from_statement(
-            text("""
+            text(f"""
             SELECT books.* FROM books
             JOIN books_fts ON books.id = books_fts.rowid
             WHERE books_fts MATCH :query
             ORDER BY rank
+            {limit_clause}
         """)
         )
 
         try:
-            result = await self.db.execute(stmt, {"query": query})
+            params: dict[str, Any] = {"query": query}
+            if limit:
+                params["limit"] = limit
+            result = await self.db.execute(stmt, params)
         except SQLAlchemyError as ex:
             raise RepositoryException(str(ex))
 

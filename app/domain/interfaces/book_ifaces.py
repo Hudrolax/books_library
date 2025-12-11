@@ -13,7 +13,8 @@ class IBookRepoProtocol(
     IRead[TDomain, BookDict],
     IList[TDomain, BookDict, BookFields],
     Protocol,
-): ...
+):
+    async def search(self, query: str, limit: int | None = None) -> List[Book]: ...
 
 
 class IBookService(ABC):

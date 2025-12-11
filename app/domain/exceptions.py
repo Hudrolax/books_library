@@ -25,6 +25,10 @@ class ServiceException(DomainException, ABC):
     pass
 
 
+class TooManyResultsError(ServiceException):
+    pass
+
+
 class ValueException(ServiceException):
     pass
 
@@ -35,6 +39,7 @@ class PermissionException(ServiceException):
 
 class MessageRouterException(DomainException):
     pass
+
 
 class UserNotFoundError(MessageRouterException):
     pass
