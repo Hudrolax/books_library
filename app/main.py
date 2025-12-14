@@ -12,6 +12,7 @@ from config.config import settings
 from config.logger import configure_logger
 from domain.util import stop_event
 from infrastructure.db.db import sessionmanager
+from infrastructure.db.fts import ensure_books_fts
 
 
 configure_logger()
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup events
+    await ensure_books_fts(sessionmanager.engine)
 
     yield
 

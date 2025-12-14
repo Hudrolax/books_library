@@ -41,6 +41,7 @@ Handles external concerns such as database access, file systems, and third-party
 
 - **`db/`**: Database configuration and session management.
   - Uses `async_sessionmaker` and `create_async_engine` for asynchronous database operations.
+  - На старте приложения выполняется проверка наличия SQLite FTS5-таблицы `books_fts`; если таблицы нет — она создаётся и индекс перестраивается (инициализация поиска).
 - **`repositories/`**: Concrete implementations of domain interfaces for data persistence.
 - **`storage/`**: Интеграции с внешними хранилищами (например, `S3Storage` для S3/MinIO).
 
