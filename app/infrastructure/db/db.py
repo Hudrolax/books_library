@@ -22,14 +22,17 @@ class DatabaseSessionManager:
         self.sessionmaker = async_sessionmaker(autocommit=False, bind=self.engine)
 
     async def close(self):
+        """
+        Закрывает соединения в пуле.
+
+        Важно: объект engine остаётся пригодным для повторного использования в
+        том же процессе (например, в интеграционных тестах, где приложение
+        стартует/останавливается несколько раз).
+        """
         if self.engine is None:
-            self.sessionmaker = None
             return
 
         await self.engine.dispose()
-
-        self.engine = None
-        self.sessionmaker = None
 
     @contextlib.asynccontextmanager
     async def connect(self) -> AsyncIterator[AsyncConnection]:

@@ -7,6 +7,8 @@ from domain.exceptions import RepositoryException
 from domain.models.base_domain_model import TDomain, TTypedDict
 from domain.models.book import BookDict, BookFields
 
+from infrastructure.db.fts_query import build_fts5_match_query
+
 from ..db.models.base_model_orm import TOrm
 from .sqlalchemy_mixins import ListMixin, ReadMixin
 
@@ -19,6 +21,10 @@ class BookRepo(
     async def search(self, query: str, limit: int | None = None) -> list[TDomain]:
         # Используем FTS5 поиск с сортировкой по релевантности (rank)
         # books_fts - это виртуальная таблица
+
+        safe_query = build_fts5_match_query(query)
+        if not safe_query:
+            return []
 
         limit_clause = "LIMIT :limit" if limit else ""
 
@@ -33,7 +39,7 @@ class BookRepo(
         )
 
         try:
-            params: dict[str, Any] = {"query": query}
+            params: dict[str, Any] = {"query": safe_query}
             if limit:
                 params["limit"] = limit
             result = await self.db.execute(stmt, params)
