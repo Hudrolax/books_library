@@ -48,6 +48,7 @@ Handles external concerns such as database access, file systems, and third-party
 
 - `config.py`: Application configuration using Pydantic Settings (reading from `.env` or environment variables).
   - Также хранит настройки пути до архивов книг (`BOOKS_ARCHIVES_PATH`) и S3/MinIO (`S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, ...).
+  - Базовый путь приложения для деплоя за прокси задаётся через `API_ROOT_PATH` (используется как `FastAPI(root_path=...)`, по умолчанию `"/api"`).
 
 ## Data Model
 

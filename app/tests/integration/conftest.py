@@ -21,6 +21,14 @@ from main import app as actual_app
 
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 
+def _join_root_path(root_path: str, path: str) -> str:
+    root = (root_path or "").rstrip("/")
+    if root == "/":
+        root = ""
+    if not path.startswith("/"):
+        path = "/" + path
+    return f"{root}{path}" if root else path
+
 
 # Создаем асинхронный движок; каждый тест получает новый движок
 @pytest.fixture(scope="function")
@@ -135,6 +143,14 @@ async def client(app) -> AsyncGenerator[AsyncClient, Any]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+
+
+@pytest.fixture(scope="session")
+def api_url():
+    def _api_url(path: str) -> str:
+        return _join_root_path(settings.API_ROOT_PATH, path)
+
+    return _api_url
 
 
 @pytest.fixture(scope="session")

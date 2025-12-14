@@ -8,6 +8,7 @@ from uvicorn.config import Config
 from uvicorn.server import Server
 
 from api.router import router
+from config.config import settings
 from config.logger import configure_logger
 from domain.util import stop_event
 from infrastructure.db.db import sessionmanager
@@ -32,7 +33,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     lifespan=lifespan,
-    root_path="/api",
+    root_path=settings.API_ROOT_PATH,
 )
 
 app.add_middleware(

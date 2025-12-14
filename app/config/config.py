@@ -25,6 +25,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # App path settings
+    API_ROOT_PATH: str = Field("/api", description="Базовый путь приложения (FastAPI root_path), например '/api'")
+
     # DB Settings
     DATABASE_URL: str = Field(DEFAULT_DB_URL, description="DB URL")
 
@@ -48,6 +51,28 @@ class Settings(BaseSettings):
     @classmethod
     def _parse_tz(cls, v):
         return ZoneInfo(v) if isinstance(v, str) else v
+
+    @field_validator("API_ROOT_PATH", mode="before")
+    @classmethod
+    def _parse_api_root_path(cls, v):
+        if v is None:
+            return "/api"
+        if not isinstance(v, str):
+            return v
+
+        normalized = v.strip()
+        if (normalized.startswith('"') and normalized.endswith('"')) or (
+            normalized.startswith("'") and normalized.endswith("'")
+        ):
+            normalized = normalized[1:-1].strip()
+
+        if normalized in ("", "/"):
+            return ""
+
+        if not normalized.startswith("/"):
+            normalized = "/" + normalized
+
+        return normalized.rstrip("/")
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod

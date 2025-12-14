@@ -40,6 +40,7 @@ async def _empty_bucket(s3_test_config) -> None:
 @pytest.mark.asyncio
 async def test_export_uploads_to_real_s3(
     client: AsyncClient,
+    api_url,
     ensure_s3_available,
     s3_test_config,
     tmp_path,
@@ -63,7 +64,7 @@ async def test_export_uploads_to_real_s3(
     monkeypatch.setattr(settings, "S3_BUCKET", s3_test_config["bucket"])
     monkeypatch.setattr(settings, "S3_REGION", s3_test_config["region"])
 
-    resp = await client.post(f"/api/v1/books/{book_id}/export")
+    resp = await client.post(api_url(f"/v1/books/{book_id}/export"))
     assert resp.status_code == 200, resp.text
     data = resp.json()
 
@@ -85,6 +86,7 @@ async def test_export_uploads_to_real_s3(
 @pytest.mark.asyncio
 async def test_export_skips_extraction_when_object_exists_in_s3(
     client: AsyncClient,
+    api_url,
     ensure_s3_available,
     s3_test_config,
     tmp_path,
@@ -108,14 +110,14 @@ async def test_export_skips_extraction_when_object_exists_in_s3(
     monkeypatch.setattr(settings, "S3_BUCKET", s3_test_config["bucket"])
     monkeypatch.setattr(settings, "S3_REGION", s3_test_config["region"])
 
-    resp1 = await client.post(f"/api/v1/books/{book_id}/export")
+    resp1 = await client.post(api_url(f"/v1/books/{book_id}/export"))
     assert resp1.status_code == 200, resp1.text
     key = resp1.json()["key"]
 
     # Удаляем архив, чтобы доказать: второй вызов не распаковывает заново
     archive_path.unlink()
 
-    resp2 = await client.post(f"/api/v1/books/{book_id}/export")
+    resp2 = await client.post(api_url(f"/v1/books/{book_id}/export"))
     assert resp2.status_code == 200, resp2.text
     assert resp2.json()["key"] == key
     assert resp2.json()["existed"] is True
