@@ -1,7 +1,7 @@
 from typing import Literal, TypedDict, cast
 
-import pytest
 from conftest import Base
+import pytest
 from sqlalchemy import Integer, String, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column

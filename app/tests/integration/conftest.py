@@ -1,6 +1,10 @@
+import asyncio
+import os
 from typing import Any, AsyncGenerator
 
 from asgi_lifespan import LifespanManager
+import boto3
+from botocore.client import Config
 from httpx import ASGITransport, AsyncClient
 import pytest
 from sqlalchemy.ext.asyncio import (
@@ -10,6 +14,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import StaticPool
 
+from config.config import settings
 from infrastructure.db.db import get_db
 from main import app as actual_app
 
@@ -130,3 +135,51 @@ async def client(app) -> AsyncGenerator[AsyncClient, Any]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+
+
+@pytest.fixture(scope="session")
+def s3_test_config() -> dict[str, str]:
+    return {
+        "endpoint": os.getenv("TEST_S3_ENDPOINT", settings.S3_ENDPOINT),
+        "access_key": os.getenv("TEST_S3_ACCESS_KEY", settings.S3_ACCESS_KEY),
+        "secret_key": os.getenv("TEST_S3_SECRET_KEY", settings.S3_SECRET_KEY),
+        "bucket": os.getenv("TEST_S3_BUCKET", settings.S3_BUCKET),
+        "region": os.getenv("TEST_S3_REGION", settings.S3_REGION),
+    }
+
+
+@pytest.fixture(scope="function")
+async def ensure_s3_available(s3_test_config):
+    def _client():
+        return boto3.client(
+            "s3",
+            endpoint_url=s3_test_config["endpoint"],
+            aws_access_key_id=s3_test_config["access_key"],
+            aws_secret_access_key=s3_test_config["secret_key"],
+            region_name=s3_test_config["region"],
+            config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
+        )
+
+    last_err: Exception | None = None
+    for _ in range(30):
+        try:
+            await asyncio.to_thread(_client().list_buckets)
+            break
+        except Exception as ex:  # noqa: BLE001
+            last_err = ex
+            await asyncio.sleep(1)
+    else:
+        raise RuntimeError(
+            "MinIO недоступен. Подними его через `docker compose up -d minio` (или `docker compose up -d`)."
+        ) from last_err
+
+    bucket = s3_test_config["bucket"]
+
+    def _ensure_bucket():
+        cli = _client()
+        try:
+            cli.head_bucket(Bucket=bucket)
+        except Exception:  # noqa: BLE001
+            cli.create_bucket(Bucket=bucket)
+
+    await asyncio.to_thread(_ensure_bucket)

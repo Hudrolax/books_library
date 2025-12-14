@@ -26,3 +26,6 @@ class IBookService(ABC):
 
     @abstractmethod
     async def search(self, query: str) -> List[Book]: ...
+
+    @abstractmethod
+    async def export_book_to_s3(self, book_id: int) -> dict[str, str | bool]: ...

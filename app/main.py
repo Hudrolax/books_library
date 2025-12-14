@@ -1,6 +1,6 @@
 import asyncio
-import logging
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +11,7 @@ from api.router import router
 from config.logger import configure_logger
 from domain.util import stop_event
 from infrastructure.db.db import sessionmanager
+
 
 configure_logger()
 

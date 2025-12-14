@@ -11,6 +11,7 @@ LogLevels = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_URL = f"sqlite+aiosqlite:///{(PROJECT_ROOT / 'librarry.db').as_posix()}"
+DEFAULT_BOOKS_ARCHIVES_PATH = PROJECT_ROOT / "books"
 
 
 class Settings(BaseSettings):
@@ -33,6 +34,16 @@ class Settings(BaseSettings):
     # Logging settings
     LOG_LEVEL: LogLevels = Field("INFO", description="Уровень логирования")
 
+    # Local books archive settings
+    BOOKS_ARCHIVES_PATH: Path = Field(DEFAULT_BOOKS_ARCHIVES_PATH, description="Путь до папки с архивами книг")
+
+    # S3 / MinIO settings
+    S3_ENDPOINT: str = Field("http://minio:9000", description="S3 endpoint URL (например, MinIO)")
+    S3_ACCESS_KEY: str = Field("minioadmin", description="S3 access key")
+    S3_SECRET_KEY: str = Field("minioadmin", description="S3 secret key")
+    S3_BUCKET: str = Field("book-library", description="S3 bucket name")
+    S3_REGION: str = Field("us-east-1", description="S3 region name (для SigV4)")
+
     @field_validator("TZ", mode="before")
     @classmethod
     def _parse_tz(cls, v):
@@ -45,6 +56,25 @@ class Settings(BaseSettings):
         if v is None or (isinstance(v, str) and v.strip() == ""):
             return DEFAULT_DB_URL
         return v
+
+    @field_validator("BOOKS_ARCHIVES_PATH", mode="before")
+    @classmethod
+    def _parse_books_archives_path(cls, v):
+        # В docker-compose/.env значения иногда задают в кавычках (например, BOOKS_ARCHIVES_PATH="/books").
+        # В контейнер/настройки это может приехать буквально с кавычками, и Path будет указывать на несуществующий путь.
+        if isinstance(v, Path):
+            normalized = str(v).strip()
+        elif isinstance(v, str):
+            normalized = v.strip()
+        else:
+            return v
+
+        if (normalized.startswith('"') and normalized.endswith('"')) or (
+            normalized.startswith("'") and normalized.endswith("'")
+        ):
+            normalized = normalized[1:-1].strip()
+
+        return Path(normalized)
 
 
 settings = Settings()

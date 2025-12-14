@@ -11,6 +11,7 @@ from sqlalchemy.orm import declarative_base
 
 from config.config import settings
 
+
 Base = declarative_base()
 
 
@@ -59,6 +60,7 @@ class DatabaseSessionManager:
 
 
 sessionmanager = DatabaseSessionManager(settings.DATABASE_URL, {"echo": False})
+
 
 async def get_db():
     async with sessionmanager.session() as session:

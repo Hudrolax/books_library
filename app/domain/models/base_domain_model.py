@@ -10,6 +10,7 @@ class BaseDomainModel(BaseModel, ABC):
 
 class BaseCreateDict(TypedDict):
     """Базовый TypedDict для привязки BaseCreateDict через bound."""
+
     ...
 
 

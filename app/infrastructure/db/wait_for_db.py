@@ -6,6 +6,7 @@ from sqlalchemy.future import select
 
 from .db import sessionmanager
 
+
 logger = logging.getLogger(__name__)
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.WARNING)
@@ -31,8 +32,8 @@ async def wait_for_db():
             logger.exception(f"Unexpected error while waiting for DB: {exc}")
             raise
 
-    logger.error(
-        f"\033[31mCouldn't connect to database after {num_retries} attempts, exiting...\033[0m")
+    logger.error(f"\033[31mCouldn't connect to database after {num_retries} attempts, exiting...\033[0m")
     exit(1)
+
 
 asyncio.run(wait_for_db())
