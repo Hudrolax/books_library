@@ -47,6 +47,26 @@ class Settings(BaseSettings):
     S3_BUCKET: str = Field("book-library", description="S3 bucket name")
     S3_REGION: str = Field("us-east-1", description="S3 region name (для SigV4)")
 
+    @field_validator("S3_ENDPOINT", mode="before")
+    @classmethod
+    def _parse_s3_endpoint(cls, v):
+        if v is None:
+            return v
+        if not isinstance(v, str):
+            return v
+
+        normalized = v.strip()
+        if (normalized.startswith('"') and normalized.endswith('"')) or (
+            normalized.startswith("'") and normalized.endswith("'")
+        ):
+            normalized = normalized[1:-1].strip()
+
+        # Частая ошибка в env: S3_ENDPOINT=minio:9000 (без схемы).
+        if normalized and "://" not in normalized:
+            normalized = "http://" + normalized
+
+        return normalized.rstrip("/")
+
     @field_validator("TZ", mode="before")
     @classmethod
     def _parse_tz(cls, v):

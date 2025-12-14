@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from domain.exceptions import NotFoundError, ValueException
+from domain.exceptions import NotFoundError, StorageUnavailableError, ValueException
 from domain.services.book_service import BookService
 
 from .dependencies import get_book_service
@@ -22,3 +22,5 @@ async def export_book(
         raise HTTPException(status_code=404, detail="Книга не найдена")
     except ValueException as ex:
         raise HTTPException(status_code=400, detail=str(ex))
+    except StorageUnavailableError as ex:
+        raise HTTPException(status_code=503, detail=str(ex))

@@ -37,6 +37,10 @@ class PermissionException(ServiceException):
     pass
 
 
+class StorageUnavailableError(ServiceException):
+    pass
+
+
 class MessageRouterException(DomainException):
     pass
 

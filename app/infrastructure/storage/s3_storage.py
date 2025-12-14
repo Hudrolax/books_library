@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
+from domain.exceptions import StorageUnavailableError
 from domain.interfaces.storage import IFileStorage
+
+
+logger = logging.getLogger(__name__)
 
 
 class S3Storage(IFileStorage):
@@ -30,7 +35,7 @@ class S3Storage(IFileStorage):
 
     async def file_exists(self, *, key: str) -> bool:
         from botocore.client import Config
-        from botocore.exceptions import ClientError
+        from botocore.exceptions import ClientError, EndpointConnectionError
 
         async with self._session.client(
             "s3",
@@ -38,7 +43,11 @@ class S3Storage(IFileStorage):
             aws_access_key_id=self._access_key,
             aws_secret_access_key=self._secret_key,
             region_name=self._region,
-            config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
+            config=Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+                retries={"max_attempts": 5, "mode": "standard"},
+            ),
         ) as client:
             try:
                 await client.head_object(Bucket=self._bucket, Key=key)
@@ -48,9 +57,18 @@ class S3Storage(IFileStorage):
                 if code in {"404", "NoSuchKey", "NotFound"}:
                     return False
                 raise
+            except EndpointConnectionError as err:
+                logger.exception(
+                    "S3 endpoint недоступен при head_object (endpoint=%s bucket=%s key=%s)",
+                    self._endpoint_url,
+                    self._bucket,
+                    key,
+                )
+                raise StorageUnavailableError("S3/MinIO недоступен") from err
 
     async def upload_file(self, *, key: str, path: Path, content_type: str | None = None) -> None:
         from botocore.client import Config
+        from botocore.exceptions import EndpointConnectionError
 
         extra_args = {"ContentType": content_type} if content_type else None
         async with self._session.client(
@@ -59,11 +77,25 @@ class S3Storage(IFileStorage):
             aws_access_key_id=self._access_key,
             aws_secret_access_key=self._secret_key,
             region_name=self._region,
-            config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
+            config=Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+                retries={"max_attempts": 5, "mode": "standard"},
+            ),
         ) as client:
-            await client.upload_file(
-                Filename=str(path),
-                Bucket=self._bucket,
-                Key=key,
-                ExtraArgs=extra_args,
-            )
+            try:
+                await client.upload_file(
+                    Filename=str(path),
+                    Bucket=self._bucket,
+                    Key=key,
+                    ExtraArgs=extra_args,
+                )
+            except EndpointConnectionError as err:
+                logger.exception(
+                    "S3 endpoint недоступен при upload_file (endpoint=%s bucket=%s key=%s path=%s)",
+                    self._endpoint_url,
+                    self._bucket,
+                    key,
+                    path,
+                )
+                raise StorageUnavailableError("S3/MinIO недоступен") from err
