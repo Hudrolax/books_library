@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn==0.34.0",
     "pydantic-settings==2.9.1",
     "sqlalchemy[asyncio]==2.0.41",
+    "aiosqlite==0.21.0",
     "aioboto3==15.5.0",
 ]
 
@@ -19,7 +20,6 @@ dependencies = [
 dev = [
   "pytest-asyncio==1.0.0",
   "httpx==0.28.1",
-  "aiosqlite==0.21.0",
   "mypy==1.16.0",
   "types-passlib==1.7.7.20250602",
   "types-python-jose==3.5.0.20250531",
