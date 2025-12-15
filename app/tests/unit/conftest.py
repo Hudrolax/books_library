@@ -10,7 +10,7 @@ TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 
 
 # Фикстура для асинхронного движка с использованием StaticPool для in-memory SQLite
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 async def async_engine():
     engine = create_async_engine(
         TEST_DB_URL,

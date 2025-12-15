@@ -32,5 +32,7 @@ async def test_ensure_books_fts_creates_virtual_table(async_engine):
 @pytest.mark.asyncio
 @pytest.mark.unit
 async def test_ensure_books_fts_idempotent(async_engine):
+    async with async_engine.begin() as conn:
+        await conn.execute(text("CREATE TABLE IF NOT EXISTS books (id INTEGER PRIMARY KEY, title TEXT, author TEXT);"))
     await ensure_books_fts(async_engine)
     await ensure_books_fts(async_engine)
