@@ -30,6 +30,12 @@ async def test_search_books_integration(client: AsyncClient, api_url):
     assert response_fail.status_code == 400
     assert response_fail.json()["detail"] == "Found too many matching books. Please refine your search."
 
+    # 3. Test failure with query that returns no results
+    query_none = "___no_such_book___"
+    response_none = await client.get(api_url(f"/v1/books/search?q={query_none}"))
+    assert response_none.status_code == 404
+    assert response_none.json()["detail"] == "Ни одной книги не найдено."
+
 
 @pytest.mark.asyncio
 @pytest.mark.integration

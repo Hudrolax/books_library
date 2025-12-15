@@ -29,6 +29,10 @@ class TooManyResultsError(ServiceException):
     pass
 
 
+class BooksNotFoundError(ServiceException):
+    pass
+
+
 class ValueException(ServiceException):
     pass
 

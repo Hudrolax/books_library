@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from domain.models.book import Book
 from domain.services.book_service import BookService
@@ -18,14 +18,11 @@ async def search_books(
 ) -> List[Book]:
     try:
         return await service.search(q)
-    except Exception as e:
-        # Check for TooManyResultsError by name to avoid circular imports or direct dependency if possible,
-        # or import it. Here we'll import it inside the function or catch generally if we prefer,
-        # but better to import explicitly.
-        from domain.exceptions import TooManyResultsError
+    except Exception as e:  # noqa: BLE001
+        from domain.exceptions import BooksNotFoundError, TooManyResultsError
 
         if isinstance(e, TooManyResultsError):
-            from fastapi import HTTPException
-
             raise HTTPException(status_code=400, detail=str(e))
-        raise e
+        if isinstance(e, BooksNotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        raise

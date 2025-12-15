@@ -45,6 +45,11 @@ class BookService(IBookService):
         # Запрашиваем на 1 больше, чтобы понять, есть ли еще результаты
         books = await self.repository.search(query=query, limit=limit + 1)
 
+        if not books:
+            from domain.exceptions import BooksNotFoundError
+
+            raise BooksNotFoundError("Ни одной книги не найдено.")
+
         if len(books) > limit:
             from domain.exceptions import TooManyResultsError
 
