@@ -51,6 +51,31 @@ async def test_build_fts5_match_query_handles_yo_e_variants(async_engine):
     assert 1 in rows
 
 
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_build_fts5_match_query_supports_prefix_search(async_engine):
+    async with async_engine.begin() as conn:
+        await conn.execute(text("CREATE TABLE IF NOT EXISTS books (id INTEGER PRIMARY KEY, title TEXT, author TEXT);"))
+        await conn.execute(text("DELETE FROM books;"))
+        await conn.execute(text("INSERT INTO books(id, title, author) VALUES (1, 'Беда', 'Иван Иванов');"))
+
+    await ensure_books_fts(async_engine)
+
+    q_title_prefix = build_books_fts5_match_query(title="бед")
+    q_author_prefix = build_books_fts5_match_query(author="ива")
+    q_global_prefix = build_fts5_match_query("бед ива")
+
+    async with async_engine.connect() as conn:
+        stmt = text("SELECT rowid FROM books_fts WHERE books_fts MATCH :q;")
+        rows_title = (await conn.execute(stmt, {"q": q_title_prefix})).scalars().all()
+        rows_author = (await conn.execute(stmt, {"q": q_author_prefix})).scalars().all()
+        rows_global = (await conn.execute(stmt, {"q": q_global_prefix})).scalars().all()
+
+    assert 1 in rows_title
+    assert 1 in rows_author
+    assert 1 in rows_global
+
+
 @pytest.mark.unit
 def test_build_fts5_match_query_empty_input():
     assert build_fts5_match_query("") == ""

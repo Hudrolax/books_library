@@ -5,6 +5,7 @@ _TOKEN_RE = re.compile(r"[^\W_]+", flags=re.UNICODE)
 
 _CYRILLIC_E = "е"
 _CYRILLIC_YO = "ё"
+_MIN_PREFIX_LEN = 2
 
 
 def build_fts5_match_query(user_query: str) -> str:
@@ -87,8 +88,12 @@ def _build_fts5_query_part(user_query: str | None, *, column: str | None) -> str
         return variants
 
     def _build_token_expr(token: str) -> str:
+        use_prefix = len(token) >= _MIN_PREFIX_LEN
         variants = _variants(token)
-        qualified_terms = [_qualify(f"\"{_escape(v)}\"") for v in sorted(variants)]
+        qualified_terms = [
+            _qualify(f"\"{_escape(v)}\"{'*' if use_prefix else ''}")
+            for v in sorted(variants)
+        ]
         if len(qualified_terms) == 1:
             return qualified_terms[0]
         return f"({' OR '.join(qualified_terms)})"
