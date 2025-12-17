@@ -48,7 +48,12 @@ class BookService(IBookService):
         if not books:
             from domain.exceptions import BooksNotFoundError
 
-            raise BooksNotFoundError("Ни одной книги не найдено.")
+            raise BooksNotFoundError(
+                "По запрошенной строке поиска не найдено ни одной книги. "
+                "Попробуй измени строку поиска. Например оставь только имя автора или только название книги, "
+                "или часть названия. Можно попробовать удалить из строки поиска лишние символы типа тире, "
+                "если они есть."
+            )
 
         if len(books) > limit:
             from domain.exceptions import TooManyResultsError

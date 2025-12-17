@@ -6,16 +6,17 @@ from domain.models.book import Book
 from domain.services.book_service import BookService
 
 from .dependencies import get_book_service
+from .schemas.book_search import BooksSearchNoResultsResponse
 
 
 router = APIRouter(prefix="/books", tags=["books"])
 
 
-@router.get("/search", response_model=List[Book])
+@router.get("/search", response_model=List[Book] | BooksSearchNoResultsResponse)
 async def search_books(
     q: str = Query(..., description="Поисковый запрос"),
     service: BookService = Depends(get_book_service),
-) -> List[Book]:
+) -> List[Book] | BooksSearchNoResultsResponse:
     try:
         return await service.search(q)
     except Exception as e:  # noqa: BLE001
@@ -24,5 +25,5 @@ async def search_books(
         if isinstance(e, TooManyResultsError):
             raise HTTPException(status_code=400, detail=str(e))
         if isinstance(e, BooksNotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
+            return BooksSearchNoResultsResponse(detail=str(e))
         raise
