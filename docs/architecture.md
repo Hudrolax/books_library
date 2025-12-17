@@ -43,6 +43,7 @@ Handles external concerns such as database access, file systems, and third-party
   - Uses `async_sessionmaker` and `create_async_engine` for asynchronous database operations.
   - На старте приложения выполняется проверка наличия SQLite FTS5-таблицы `books_fts`; если таблицы нет — она создаётся и индекс перестраивается (инициализация поиска).
   - Пользовательский поисковый ввод нормализуется в безопасный FTS5 `MATCH`-запрос: термы берутся из «слов» (unicode letters/digits) и экранируются в двойных кавычках; выражение собирается контролируемо (AND/OR/скобки), чтобы не падать на символах вроде `-` и чтобы учитывать частую замену `ё↔е` (например, `Черный` находит `Чёрный`).
+  - Поиск поддерживает ограничение по колонкам FTS5 (`author`, `title`) — это используется в эндпоинте `/api/v1/books/search` через query-параметры `author` и `title` (можно комбинировать).
 - **`repositories/`**: Concrete implementations of domain interfaces for data persistence.
 - **`storage/`**: Интеграции с внешними хранилищами (например, `S3Storage` для S3/MinIO).
 

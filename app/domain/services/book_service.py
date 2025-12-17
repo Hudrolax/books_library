@@ -40,17 +40,23 @@ class BookService(IBookService):
     async def list(self, filters: BookDict) -> List[Book]:
         return await self.repository.list(filters=filters)
 
-    async def search(self, query: str) -> List[Book]:
-        limit = 20
+    async def search(
+        self,
+        *,
+        q: str | None = None,
+        author: str | None = None,
+        title: str | None = None,
+    ) -> List[Book]:
+        limit = 50
         # Запрашиваем на 1 больше, чтобы понять, есть ли еще результаты
-        books = await self.repository.search(query=query, limit=limit + 1)
+        books = await self.repository.search(q=q, author=author, title=title, limit=limit + 1)
 
         if not books:
             from domain.exceptions import BooksNotFoundError
 
             raise BooksNotFoundError(
                 "По запрошенной строке поиска не найдено ни одной книги. "
-                "Попробуй измени строку поиска. Например оставь только имя автора или только название книги, "
+                "Попробуй поискать в интернете точное название книги. Попробуй измени строку поиска, например оставь только имя автора или только название книги, "
                 "или часть названия. Можно попробовать удалить из строки поиска лишние символы типа тире, "
                 "если они есть."
             )
@@ -58,7 +64,9 @@ class BookService(IBookService):
         if len(books) > limit:
             from domain.exceptions import TooManyResultsError
 
-            raise TooManyResultsError("Found too many matching books. Please refine your search.")
+            raise TooManyResultsError(
+                "Запрос поиска находит больше 50ти книг по запрошенным данным. Попробуй поикать названия книги в интернете и уточнить запрос."
+            )
 
         return books
 

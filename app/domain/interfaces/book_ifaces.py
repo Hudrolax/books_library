@@ -14,7 +14,14 @@ class IBookRepoProtocol(
     IList[TDomain, BookDict, BookFields],
     Protocol,
 ):
-    async def search(self, query: str, limit: int | None = None) -> List[Book]: ...
+    async def search(
+        self,
+        *,
+        q: str | None = None,
+        author: str | None = None,
+        title: str | None = None,
+        limit: int | None = None,
+    ) -> List[Book]: ...
 
 
 class IBookService(ABC):
@@ -25,7 +32,13 @@ class IBookService(ABC):
     async def list(self, filters: BookDict) -> List[Book]: ...
 
     @abstractmethod
-    async def search(self, query: str) -> List[Book]: ...
+    async def search(
+        self,
+        *,
+        q: str | None = None,
+        author: str | None = None,
+        title: str | None = None,
+    ) -> List[Book]: ...
 
     @abstractmethod
     async def export_book_to_s3(self, book_id: int) -> dict[str, str | bool]: ...

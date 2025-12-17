@@ -7,7 +7,7 @@ from domain.exceptions import RepositoryException
 from domain.models.base_domain_model import TDomain, TTypedDict
 from domain.models.book import BookDict, BookFields
 
-from infrastructure.db.fts_query import build_fts5_match_query
+from infrastructure.db.fts_query import build_books_fts5_match_query
 
 from ..db.models.base_model_orm import TOrm
 from .sqlalchemy_mixins import ListMixin, ReadMixin
@@ -18,11 +18,18 @@ class BookRepo(
     ListMixin[TDomain, TOrm, BookDict, BookFields],
     Generic[TDomain, TOrm, TTypedDict],
 ):
-    async def search(self, query: str, limit: int | None = None) -> list[TDomain]:
+    async def search(
+        self,
+        *,
+        q: str | None = None,
+        author: str | None = None,
+        title: str | None = None,
+        limit: int | None = None,
+    ) -> list[TDomain]:
         # Используем FTS5 поиск с сортировкой по релевантности (rank)
         # books_fts - это виртуальная таблица
 
-        safe_query = build_fts5_match_query(query)
+        safe_query = build_books_fts5_match_query(q=q, author=author, title=title)
         if not safe_query:
             return []
 
