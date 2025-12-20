@@ -11,6 +11,7 @@ dependencies = [
     "sqlalchemy[asyncio]==2.0.41",
     "aiosqlite==0.21.0",
     "aioboto3==15.5.0",
+    "elasticsearch==8.19.1",
 ]
 
 ########################################

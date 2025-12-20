@@ -47,6 +47,18 @@ class Settings(BaseSettings):
     S3_BUCKET: str = Field("book-library", description="S3 bucket name")
     S3_REGION: str = Field("us-east-1", description="S3 region name (для SigV4)")
 
+    # Elasticsearch settings (поиск книг)
+    ELASTICSEARCH_URL: str | None = Field(
+        None,
+        description="URL Elasticsearch (например, http://elasticsearch:9200). Если не задан — поиск через ES недоступен.",
+    )
+    ELASTICSEARCH_INDEX: str = Field("books", description="Имя индекса Elasticsearch для книг")
+    ELASTICSEARCH_AUTO_INDEX: bool = Field(
+        True,
+        description="Если true — при первом поиске создаёт индекс и индексирует книги из БД, если индекс пуст.",
+    )
+    ELASTICSEARCH_REQUEST_TIMEOUT_S: float = Field(10.0, description="Timeout запросов к Elasticsearch (сек.)")
+
     @field_validator("S3_ENDPOINT", mode="before")
     @classmethod
     def _parse_s3_endpoint(cls, v):
@@ -62,6 +74,27 @@ class Settings(BaseSettings):
             normalized = normalized[1:-1].strip()
 
         # Частая ошибка в env: S3_ENDPOINT=minio:9000 (без схемы).
+        if normalized and "://" not in normalized:
+            normalized = "http://" + normalized
+
+        return normalized.rstrip("/")
+
+    @field_validator("ELASTICSEARCH_URL", mode="before")
+    @classmethod
+    def _parse_elasticsearch_url(cls, v):
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            return v
+
+        normalized = v.strip()
+        if normalized == "":
+            return None
+        if (normalized.startswith('"') and normalized.endswith('"')) or (
+            normalized.startswith("'") and normalized.endswith("'")
+        ):
+            normalized = normalized[1:-1].strip()
+
         if normalized and "://" not in normalized:
             normalized = "http://" + normalized
 

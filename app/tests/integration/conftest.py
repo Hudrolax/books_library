@@ -16,6 +16,7 @@ from sqlalchemy.pool import StaticPool
 
 from config.config import settings
 from infrastructure.db.db import get_db
+from infrastructure.search.es_client import get_elasticsearch
 from main import app as actual_app
 
 
@@ -63,28 +64,8 @@ async def session(async_connection):
         # Sync run because create_all is not async directly on connection easily without run_sync
         await async_connection.run_sync(Base.metadata.create_all)
 
-        # Initialize FTS
-        # We need to do this manually via raw SQL on the connection or session
-        # Use underlying sync connection for sqlite3 specific fts creation if possible,
-        # or just execute valid SQL via text()
-
-        from sqlalchemy import text
-
-        await session.execute(
-            text("""
-            CREATE VIRTUAL TABLE IF NOT EXISTS books_fts USING fts5(
-                title, 
-                author, 
-                content='books', 
-                content_rowid='id'
-            );
-        """)
-        )
-        await session.execute(text("INSERT INTO books_fts(books_fts) VALUES('rebuild');"))
-
         # Load Data from Fixture
         import json
-        import os
 
         # Path relative to app/tests/integration/conftest.py?
         # app/tests/integration/../../tests/fixtures/akunin_books.json -> app/tests/fixtures/akunin_books.json
@@ -114,10 +95,6 @@ async def session(async_connection):
                 session.add(book)
             await session.commit()
 
-            # Update FTS after insert
-            await session.execute(text("INSERT INTO books_fts(books_fts) VALUES('rebuild');"))
-            await session.commit()
-
         yield session
 
 
@@ -136,6 +113,42 @@ async def session_override(app, session) -> None:
 async def app():
     async with LifespanManager(actual_app):
         yield actual_app
+
+
+@pytest.fixture(scope="module", autouse=True)
+async def ensure_elasticsearch_available():
+    if not settings.ELASTICSEARCH_URL:
+        pytest.skip("ELASTICSEARCH_URL не задан — интеграционные тесты поиска требуют Elasticsearch.")
+
+    from elasticsearch import Elasticsearch
+
+    tmp_client = Elasticsearch(hosts=[settings.ELASTICSEARCH_URL], request_timeout=5)
+    last_err: Exception | None = None
+    for _ in range(60):
+        try:
+            await asyncio.to_thread(tmp_client.info)
+            break
+        except Exception as ex:  # noqa: BLE001
+            last_err = ex
+            await asyncio.sleep(1)
+    else:
+        await asyncio.to_thread(tmp_client.close)
+        raise RuntimeError("Elasticsearch недоступен. Подними его через `docker compose up -d elasticsearch`.") from last_err
+
+    await asyncio.to_thread(tmp_client.close)
+
+
+@pytest.fixture(scope="function", autouse=True)
+async def reset_elasticsearch_index(app):
+    """
+    Изоляция тестов: индекс книг сбрасывается перед каждым тестом.
+
+    Дальше индекс будет (пере)заполнен лениво при первом запросе поиска через ensure_books_index(session).
+    """
+    client = get_elasticsearch()
+    index = settings.ELASTICSEARCH_INDEX
+    if await asyncio.to_thread(client.indices.exists, index=index):
+        await asyncio.to_thread(client.indices.delete, index=index)
 
 
 @pytest.fixture

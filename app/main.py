@@ -12,7 +12,7 @@ from config.config import settings
 from config.logger import configure_logger
 from domain.util import stop_event
 from infrastructure.db.db import sessionmanager
-from infrastructure.db.fts import ensure_books_fts
+from infrastructure.search.es_client import close_elasticsearch, init_elasticsearch
 
 
 configure_logger()
@@ -24,12 +24,13 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup events
-    await ensure_books_fts(sessionmanager.engine)
+    await init_elasticsearch()
 
     yield
 
     # shutdown events
     stop_event.set()
+    await close_elasticsearch()
     await sessionmanager.close()
 
 

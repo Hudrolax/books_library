@@ -10,6 +10,8 @@ docker-compose -f docker-compose.dev.yml run --rm app sh -c "pytest"
 docker-compose -f docker-compose.dev.yml down
 ```
 
+`docker-compose.dev.yml` поднимает зависимости приложения, включая Elasticsearch (используется для поиска книг).
+
 ## Ручное тестирование
 
 ```bash

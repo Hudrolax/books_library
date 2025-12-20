@@ -41,10 +41,14 @@ Handles external concerns such as database access, file systems, and third-party
 
 - **`db/`**: Database configuration and session management.
   - Uses `async_sessionmaker` and `create_async_engine` for asynchronous database operations.
-  - На старте приложения выполняется проверка наличия SQLite FTS5-таблицы `books_fts`; если таблицы нет — она создаётся и индекс перестраивается (инициализация поиска).
-  - Пользовательский поисковый ввод нормализуется в безопасный FTS5 `MATCH`-запрос: термы берутся из «слов» (unicode letters/digits) и экранируются в двойных кавычках; для поиска по части слова по умолчанию используется префиксный поиск (`"терм"*`), выражение собирается контролируемо (AND/OR/скобки), чтобы не падать на символах вроде `-` и чтобы учитывать частую замену `ё↔е` (например, `Черный` находит `Чёрный`, а `бед` находит `Беда`).
-  - Поиск поддерживает ограничение по колонкам FTS5 (`author`, `title`) — это используется в эндпоинте `/api/v1/books/search` через query-параметры `author` и `title` (можно комбинировать).
 - **`repositories/`**: Concrete implementations of domain interfaces for data persistence.
+- **`search/`**: Поиск книг в Elasticsearch.
+  - Клиент `AsyncElasticsearch` инициализируется в lifespan приложения и закрывается при shutdown.
+  - Индекс книг задаётся через `ELASTICSEARCH_INDEX` (по умолчанию `books`).
+  - При первом поисковом запросе (если включено `ELASTICSEARCH_AUTO_INDEX=true`) приложение:
+    1) создаёт индекс с маппингом `search_as_you_type` для `title` и `author` и русским анализатором (включая нормализацию `ё→е`),
+    2) индексирует книги из БД, если индекс пуст.
+  - Эндпоинт `/api/v1/books/search` ищет релевантные `id` в Elasticsearch и затем подтягивает полные записи из БД, сохраняя порядок по релевантности.
 - **`storage/`**: Интеграции с внешними хранилищами (например, `S3Storage` для S3/MinIO).
 
 ### 4. `app/config`
