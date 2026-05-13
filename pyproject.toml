@@ -6,12 +6,13 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi==0.115.12",
-    "uvicorn==0.34.0",
+    "uvicorn==0.35.0",
     "pydantic-settings==2.9.1",
     "sqlalchemy[asyncio]==2.0.41",
     "aiosqlite==0.21.0",
     "aioboto3==15.5.0",
     "elasticsearch==8.19.1",
+    "fastmcp==3.2.4",
 ]
 
 ########################################

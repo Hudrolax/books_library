@@ -1,21 +1,31 @@
 # Book Library
 
+## MCP
+
+Приложение поднимает MCP сервер FastMCP в том же ASGI-приложении, что и HTTP API.
+При `API_ROOT_PATH=/api` MCP endpoint доступен по `/api/mcp`.
+
+Доступные инструменты:
+
+- `search_books` — поиск книг по `q`, `author`, `title`.
+- `export_book_to_s3` — экспорт книги в S3/MinIO по `book_id`.
+
 ## Тестирование
 
  Тестирование запускается внутри контейнера:
 
 ```bash
-docker-compose -f docker-compose.dev.yml up -d
-docker-compose -f docker-compose.dev.yml run --rm app sh -c "pytest"
-docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.yml up -d
+docker-compose -f docker-compose.yml run --rm app sh -c "pytest"
+docker-compose -f docker-compose.yml down
 ```
 
-`docker-compose.dev.yml` поднимает зависимости приложения, включая Elasticsearch (используется для поиска книг).
+`docker-compose.yml` поднимает зависимости приложения, включая Elasticsearch (используется для поиска книг).
 
 ## Ручное тестирование
 
 ```bash
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f docker-compose.yml up -d
 
 ```
 Далее нужно выполнить запросы через curl к эндпоинтам.
@@ -25,5 +35,5 @@ docker-compose -f docker-compose.dev.yml up -d
 Запуск линтера (Ruff) внутри контейнера:
 
 ```bash
-docker-compose -f docker-compose.dev.yml run --rm app sh -c "ruff check ."
+docker-compose -f docker-compose.yml run --rm app sh -c "ruff check ."
 ```

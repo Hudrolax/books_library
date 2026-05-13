@@ -4,6 +4,7 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastmcp.utilities.lifespan import combine_lifespans
 from uvicorn.config import Config
 from uvicorn.server import Server
 
@@ -13,6 +14,7 @@ from config.logger import configure_logger
 from domain.util import stop_event
 from infrastructure.db.db import sessionmanager
 from infrastructure.search.es_client import close_elasticsearch, init_elasticsearch
+from mcp_server import mcp_app
 
 
 configure_logger()
@@ -35,7 +37,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    lifespan=lifespan,
+    lifespan=combine_lifespans(lifespan, mcp_app.lifespan),
     root_path=settings.API_ROOT_PATH,
 )
 
@@ -57,6 +59,7 @@ async def log_request_response(request: Request, call_next):
 
 
 app.include_router(router)
+app.mount("/mcp", mcp_app)
 
 
 async def run_fastapi():

@@ -8,6 +8,7 @@ This project is a backend service for a Book Library application, built with mod
 
 - **Language**: Python 3.13
 - **Web Framework**: FastAPI (v0.115+)
+- **MCP**: FastMCP (HTTP MCP server mounted into the FastAPI app)
 - **Server**: Uvicorn
 - **Database ORM**: SQLAlchemy (AsyncIO extension)
 - **Object Storage**: S3-compatible (MinIO) + `aioboto3` (async S3 client)
@@ -25,6 +26,14 @@ Contains the FastAPI routers and endpoints.
 - **`v1/`**: Version 1 of the API.
   - `healthcheck_router.py`: Provides health monitoring endpoints (e.g., `/api/v1/healthcheck`).
   - `export.py`: Экспорт книги в S3/MinIO (например, `POST /api/v1/books/{book_id}/export`); в ответе возвращаются `bucket`, `key`, `existed` (ссылка не формируется, загрузку клиент делает сам по `bucket+key`). При недоступности S3/MinIO эндпоинт отвечает `503`.
+
+### 1.1. `app/mcp_server` (MCP Interface Layer)
+
+Содержит FastMCP сервер, смонтированный в основное FastAPI-приложение на `/mcp` (с учётом `API_ROOT_PATH` внешний путь по умолчанию — `/api/mcp`).
+
+- `search_books`: MCP-инструмент поиска книг. Принимает те же поисковые параметры, что и `GET /api/v1/books/search` (`q`, `author`, `title`), и использует тот же `BookService.search`.
+- `export_book_to_s3`: MCP-инструмент экспорта книги в S3/MinIO. Принимает `book_id`, использует тот же `BookService.export_book_to_s3` и возвращает `bucket`, `key`, `existed`.
+- MCP-инструменты возвращают структурированные статусы (`ok`, `validation_error`, `no_results`, `too_many_results`, `not_found`, `invalid_book_data`, `storage_unavailable`) вместо HTTP-кодов, потому что MCP не является HTTP API для конечного клиента.
 
 ### 2. `app/domain` (Domain Layer)
 
@@ -57,6 +66,10 @@ Handles external concerns such as database access, file systems, and third-party
   - Также хранит настройки пути до архивов книг (`BOOKS_ARCHIVES_PATH`) и S3/MinIO (`S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, ...).
   - `S3_ENDPOINT` нормализуется (обрезаются кавычки/пробелы, убирается хвостовой `/`; если схема не указана — добавляется `http://`).
   - Базовый путь приложения для деплоя за прокси задаётся через `API_ROOT_PATH` (используется как `FastAPI(root_path=...)`, по умолчанию `"/api"`).
+
+### 5. `app/composition.py`
+
+Общий слой сборки зависимостей приложения. Создаёт `S3Storage` и `BookService` для разных интерфейсных слоёв. FastAPI dependency-функции и MCP-инструменты используют эти фабрики, чтобы не расходиться в создании репозитория, S3-хранилища и настроек.
 
 ## Data Model
 
