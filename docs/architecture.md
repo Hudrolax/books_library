@@ -8,7 +8,7 @@ This project is a backend service for a Book Library application, built with mod
 
 - **Language**: Python 3.13
 - **Web Framework**: FastAPI (v0.115+)
-- **MCP**: FastMCP (HTTP MCP server mounted into the FastAPI app)
+- **MCP**: FastMCP (HTTP MCP server exposed by the FastAPI app)
 - **Server**: Uvicorn
 - **Database ORM**: SQLAlchemy (AsyncIO extension)
 - **Object Storage**: S3-compatible (MinIO) + `aioboto3` (async S3 client)
@@ -29,7 +29,7 @@ Contains the FastAPI routers and endpoints.
 
 ### 1.1. `app/mcp_server` (MCP Interface Layer)
 
-Содержит FastMCP сервер, смонтированный в основное FastAPI-приложение на `/mcp` (с учётом `API_ROOT_PATH` внешний путь по умолчанию — `/api/mcp`).
+Содержит FastMCP сервер, подключённый к основному FastAPI-приложению на `/mcp` (с учётом `API_ROOT_PATH` внешний путь по умолчанию — `/api/mcp`).
 
 - `search_books`: MCP-инструмент поиска книг. Принимает те же поисковые параметры, что и `GET /api/v1/books/search` (`q`, `author`, `title`), и использует тот же `BookService.search`.
 - `export_book_to_s3`: MCP-инструмент экспорта книги в S3/MinIO. Принимает `book_id`, использует тот же `BookService.export_book_to_s3` и возвращает `bucket`, `key`, `existed`.

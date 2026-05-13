@@ -59,7 +59,7 @@ async def log_request_response(request: Request, call_next):
 
 
 app.include_router(router)
-app.mount("/mcp", mcp_app)
+app.router.routes.extend(mcp_app.routes)
 
 
 async def run_fastapi():

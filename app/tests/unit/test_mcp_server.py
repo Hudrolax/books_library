@@ -4,6 +4,7 @@ import pytest
 
 from domain.exceptions import BooksNotFoundError, NotFoundError
 from domain.models.book import Book
+from main import app
 from mcp_server import server
 
 
@@ -98,3 +99,13 @@ async def test_mcp_export_book_to_s3_maps_not_found(monkeypatch):
 
     assert result.status == "not_found"
     assert result.detail == "Книга не найдена"
+
+
+def test_mcp_http_route_registered_at_top_level():
+    mcp_routes = [
+        route
+        for route in app.routes
+        if type(route).__name__ == "Route" and getattr(route, "path", None) == "/mcp"
+    ]
+
+    assert mcp_routes

@@ -118,4 +118,4 @@ async def export_book_to_s3(
     return ExportBookToolResponse(status="ok", **data)
 
 
-mcp_app = mcp.http_app(path="/")
+mcp_app = mcp.http_app()
