@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -30,7 +30,17 @@ class SendBookEmailToolResponse(BaseModel):
         ...,
         description=(
             "Статус отправки книги на e-mail. "
-            "'not_in_s3' — файл не найден в S3, сначала нужен export_book_to_s3."
+            "'ok' — n8n принял и письмо отправлено; 'email_send_failed' — n8n ответил ошибкой "
+            "(детали в provider_response) или сервис недоступен; "
+            "'not_in_s3' — файла нет в S3, сначала нужен export_book_to_s3."
         ),
     )
-    detail: str | None = Field(None, description="Сообщение от сервиса отправки или пояснение ошибки")
+    detail: str | None = Field(None, description="Краткое человекочитаемое пояснение (обычно message от n8n)")
+    provider_response: dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Сырой JSON-ответ n8n как есть (и при успехе, и при ошибке). "
+            "null, если n8n недоступен или ответ не в формате JSON-объекта. "
+            "Используй его, чтобы понять, что именно произошло с отправкой."
+        ),
+    )

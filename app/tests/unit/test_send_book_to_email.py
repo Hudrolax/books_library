@@ -23,7 +23,7 @@ class _EmailSender:
     def __init__(self) -> None:
         self.kwargs: dict[str, str] | None = None
 
-    async def send_book(self, *, bucket: str, file_key: str, to: str, subject: str, text: str) -> str:
+    async def send_book(self, *, bucket: str, file_key: str, to: str, subject: str, text: str):
         self.kwargs = {
             "bucket": bucket,
             "file_key": file_key,
@@ -31,7 +31,12 @@ class _EmailSender:
             "subject": subject,
             "text": text,
         }
-        return "The file has been successfully sent to email."
+        return {
+            "ok": True,
+            "status_code": 200,
+            "provider_response": {"message": "The file has been successfully sent to email."},
+            "detail": "The file has been successfully sent to email.",
+        }
 
 
 def _service(storage: _Storage, email_sender: _EmailSender) -> BookService:
@@ -58,7 +63,12 @@ async def test_send_book_to_email_delegates_when_file_in_s3() -> None:
         text="Получи свою книгу!",
     )
 
-    assert result == {"detail": "The file has been successfully sent to email."}
+    assert result == {
+        "ok": True,
+        "status_code": 200,
+        "provider_response": {"message": "The file has been successfully sent to email."},
+        "detail": "The file has been successfully sent to email.",
+    }
     assert storage.checked_key == "103582_akunin-boris_azazel_0_39.fb2"
     assert email_sender.kwargs is not None
 

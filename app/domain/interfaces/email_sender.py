@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol, TypedDict
+
+
+class EmailSendResult(TypedDict):
+    ok: bool
+    status_code: int
+    provider_response: dict[str, Any] | None
+    detail: str
 
 
 class IEmailSender(Protocol):
@@ -12,4 +19,4 @@ class IEmailSender(Protocol):
         to: str,
         subject: str,
         text: str,
-    ) -> str: ...
+    ) -> EmailSendResult: ...

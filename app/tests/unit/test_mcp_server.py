@@ -53,7 +53,22 @@ class _EmailService:
             "subject": subject,
             "text": text,
         }
-        return {"detail": "The file has been successfully sent to email."}
+        return {
+            "ok": True,
+            "status_code": 200,
+            "provider_response": {"message": "The file has been successfully sent to email."},
+            "detail": "The file has been successfully sent to email.",
+        }
+
+
+class _N8nFailedEmailService:
+    async def send_book_to_email(self, *, bucket: str, file_key: str, to: str, subject: str, text: str):
+        return {
+            "ok": False,
+            "status_code": 500,
+            "provider_response": {"error": "SMTP timeout", "code": "EMAIL_FAILED"},
+            "detail": "SMTP timeout",
+        }
 
 
 class _NotInS3EmailService:
@@ -141,6 +156,7 @@ async def test_mcp_send_book_to_email_returns_ok(monkeypatch):
 
     assert result.status == "ok"
     assert result.detail == "The file has been successfully sent to email."
+    assert result.provider_response == {"message": "The file has been successfully sent to email."}
     assert service.kwargs == {
         "bucket": "books",
         "file_key": "103582_akunin-boris_azazel_0_39.fb2",
@@ -148,6 +164,23 @@ async def test_mcp_send_book_to_email_returns_ok(monkeypatch):
         "subject": "Ваша книга",
         "text": "Получи свою книгу!",
     }
+
+
+@pytest.mark.asyncio
+async def test_mcp_send_book_to_email_passes_through_n8n_failure(monkeypatch):
+    monkeypatch.setattr(server, "book_service_context", _service_context(_N8nFailedEmailService()))
+
+    result = await server.send_book_to_email(
+        bucket="books",
+        file_key="103582_akunin-boris_azazel_0_39.fb2",
+        to="hudro795@gmail.com",
+        subject="Ваша книга",
+        text="Получи свою книгу!",
+    )
+
+    assert result.status == "email_send_failed"
+    assert result.detail == "SMTP timeout"
+    assert result.provider_response == {"error": "SMTP timeout", "code": "EMAIL_FAILED"}
 
 
 @pytest.mark.asyncio
@@ -180,6 +213,7 @@ async def test_mcp_send_book_to_email_maps_email_send_failed(monkeypatch):
 
     assert result.status == "email_send_failed"
     assert result.detail == "Сервис отправки писем недоступен"
+    assert result.provider_response is None
 
 
 def test_mcp_http_route_registered_at_top_level():

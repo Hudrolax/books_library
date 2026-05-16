@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Protocol
 
+from ..interfaces.email_sender import EmailSendResult
 from ..interfaces.mixins_repo_iface import (
     IList,
     IRead,
@@ -52,4 +53,4 @@ class IBookService(ABC):
         to: str,
         subject: str,
         text: str,
-    ) -> dict[str, str]: ...
+    ) -> EmailSendResult: ...

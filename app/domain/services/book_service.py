@@ -9,7 +9,7 @@ import unicodedata
 import zipfile
 
 from domain.exceptions import ValueException
-from domain.interfaces.email_sender import IEmailSender
+from domain.interfaces.email_sender import EmailSendResult, IEmailSender
 from domain.interfaces.storage import IFileStorage
 
 from ..interfaces.book_ifaces import IBookRepoProtocol, IBookService
@@ -112,7 +112,7 @@ class BookService(IBookService):
         to: str,
         subject: str,
         text: str,
-    ) -> dict[str, str]:
+    ) -> EmailSendResult:
         # Книгу можно отправлять только после экспорта в S3: проверяем, что файл действительно там есть.
         if not await self.storage.file_exists(key=file_key):
             raise ValueException(
@@ -120,14 +120,13 @@ class BookService(IBookService):
                 "и используй из его ответа bucket и key."
             )
 
-        message = await self.email_sender.send_book(
+        return await self.email_sender.send_book(
             bucket=bucket,
             file_key=file_key,
             to=to,
             subject=subject,
             text=text,
         )
-        return {"detail": message}
 
     @staticmethod
     def _transliterate_cyrillic(value: str) -> str:

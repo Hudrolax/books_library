@@ -160,11 +160,15 @@ async def export_book_to_s3(
         "Вызывать ТОЛЬКО после успешного export_book_to_s3.\n"
         "bucket и file_key бери из ответа export_book_to_s3 (bucket -> bucket, key -> file_key). "
         "to, subject и text — адрес и текст письма для пользователя.\n"
+        "Сырой JSON-ответ n8n всегда пробрасывается в поле provider_response "
+        "(и при успехе, и при ошибке) — опирайся на него, чтобы понять результат "
+        "и при ошибке объяснить пользователю причину.\n"
         "Статусы ответа:\n"
-        "- 'ok' — письмо отправлено; в detail сообщение сервиса.\n"
+        "- 'ok' — n8n принял запрос, письмо отправлено; detail = message от n8n.\n"
         "- 'not_in_s3' — файла нет в S3; сначала вызови export_book_to_s3.\n"
         "- 'storage_unavailable' — S3/MinIO недоступен при проверке файла.\n"
-        "- 'email_send_failed' — сервис отправки писем недоступен или вернул ошибку."
+        "- 'email_send_failed' — n8n ответил ошибкой (причина в provider_response) "
+        "или сервис недоступен (provider_response = null)."
     ),
     annotations={
         "title": "Отправка книги на e-mail",
@@ -211,7 +215,11 @@ async def send_book_to_email(
         except EmailSendError as ex:
             return SendBookEmailToolResponse(status="email_send_failed", detail=str(ex))
 
-    return SendBookEmailToolResponse(status="ok", detail=data.get("detail"))
+    return SendBookEmailToolResponse(
+        status="ok" if data["ok"] else "email_send_failed",
+        detail=data["detail"],
+        provider_response=data["provider_response"],
+    )
 
 
 mcp_app = mcp.http_app()
