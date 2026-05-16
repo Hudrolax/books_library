@@ -31,9 +31,12 @@ Contains the FastAPI routers and endpoints.
 
 Содержит FastMCP сервер, подключённый к основному FastAPI-приложению на `/mcp` (с учётом `API_ROOT_PATH` внешний путь по умолчанию — `/api/mcp`).
 
-- `search_books`: MCP-инструмент поиска книг. Принимает те же поисковые параметры, что и `GET /api/v1/books/search` (`q`, `author`, `title`), и использует тот же `BookService.search`.
-- `export_book_to_s3`: MCP-инструмент экспорта книги в S3/MinIO. Принимает `book_id`, использует тот же `BookService.export_book_to_s3` и возвращает `bucket`, `key`, `existed`.
-- MCP-инструменты возвращают структурированные статусы (`ok`, `validation_error`, `no_results`, `too_many_results`, `not_found`, `invalid_book_data`, `storage_unavailable`) вместо HTTP-кодов, потому что MCP не является HTTP API для конечного клиента.
+MCP-инструменты образуют строгий сценарий из трёх шагов (он же описан в `instructions` сервера): поиск → выбор ровно одной книги → экспорт в S3 → отправка на e-mail.
+
+- `search_books`: шаг 1 — поиск книг. Принимает поисковые параметры `q`, `author`, `title` и использует тот же `BookService.search`.
+- `export_book_to_s3`: шаг 2 — экспорт одной выбранной книги в S3/MinIO. Принимает `book_id`, использует `BookService.export_book_to_s3` и возвращает `bucket`, `key`, `existed`.
+- `send_book_to_email`: шаг 3 — отправка уже выгруженной в S3 книги на e-mail. Принимает `bucket`, `file_key` (из ответа `export_book_to_s3`), `to`, `subject`, `text`; использует `BookService.send_book_to_email`. Сервис сначала проверяет наличие файла в S3 (`IFileStorage.file_exists`) и только потом дёргает n8n-вебхук, поэтому отправка возможна только после успешного экспорта.
+- MCP-инструменты возвращают структурированные статусы (`ok`, `validation_error`, `no_results`, `too_many_results`, `not_found`, `invalid_book_data`, `storage_unavailable`, `not_in_s3`, `email_send_failed`) вместо HTTP-кодов, потому что MCP не является HTTP API для конечного клиента.
 
 ### 2. `app/domain` (Domain Layer)
 
@@ -59,17 +62,18 @@ Handles external concerns such as database access, file systems, and third-party
     2) индексирует книги из БД, если индекс пуст.
   - Эндпоинт `/api/v1/books/search` ищет релевантные `id` в Elasticsearch и затем подтягивает полные записи из БД, сохраняя порядок по релевантности.
 - **`storage/`**: Интеграции с внешними хранилищами (например, `S3Storage` для S3/MinIO).
+- **`email/`**: Отправка книги на e-mail. `N8nEmailSender` POST-ом обращается к готовому n8n-вебхуку (`N8N_EMAIL_WEBHOOK_URL`) и не содержит собственной email-инфраструктуры. Реализует доменный интерфейс `IEmailSender`; при недоступности/ошибке вебхука бросает `EmailSendError`.
 
 ### 4. `app/config`
 
 - `config.py`: Application configuration using Pydantic Settings (reading from `.env` or environment variables).
-  - Также хранит настройки пути до архивов книг (`BOOKS_ARCHIVES_PATH`) и S3/MinIO (`S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, ...).
+  - Также хранит настройки пути до архивов книг (`BOOKS_ARCHIVES_PATH`), S3/MinIO (`S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, ...) и n8n-вебхука отправки книги на e-mail (`N8N_EMAIL_WEBHOOK_URL`, `N8N_EMAIL_WEBHOOK_TIMEOUT_S`).
   - `S3_ENDPOINT` нормализуется (обрезаются кавычки/пробелы, убирается хвостовой `/`; если схема не указана — добавляется `http://`).
   - Базовый путь приложения для деплоя за прокси задаётся через `API_ROOT_PATH` (используется как `FastAPI(root_path=...)`, по умолчанию `"/api"`).
 
 ### 5. `app/composition.py`
 
-Общий слой сборки зависимостей приложения. Создаёт `S3Storage` и `BookService` для разных интерфейсных слоёв. FastAPI dependency-функции и MCP-инструменты используют эти фабрики, чтобы не расходиться в создании репозитория, S3-хранилища и настроек.
+Общий слой сборки зависимостей приложения. Создаёт `S3Storage`, `N8nEmailSender` и `BookService` для разных интерфейсных слоёв. FastAPI dependency-функции и MCP-инструменты используют эти фабрики, чтобы не расходиться в создании репозитория, S3-хранилища, отправщика e-mail и настроек.
 
 ## Data Model
 

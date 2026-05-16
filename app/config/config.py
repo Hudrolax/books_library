@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     )
     ELASTICSEARCH_REQUEST_TIMEOUT_S: float = Field(10.0, description="Timeout запросов к Elasticsearch (сек.)")
 
+    # n8n email webhook settings (отправка книги на e-mail)
+    N8N_EMAIL_WEBHOOK_URL: str = Field(
+        "https://n8n.hudnet.xyz/webhook/ab536120-8832-4d11-a72f-5dd16b991e9d",
+        description="URL n8n-вебхука для отправки книги на e-mail",
+    )
+    N8N_EMAIL_WEBHOOK_TIMEOUT_S: float = Field(30.0, description="Timeout запроса к n8n-вебхуку (сек.)")
+
     @field_validator("S3_ENDPOINT", mode="before")
     @classmethod
     def _parse_s3_endpoint(cls, v):

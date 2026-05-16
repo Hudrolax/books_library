@@ -42,3 +42,14 @@ class IBookService(ABC):
 
     @abstractmethod
     async def export_book_to_s3(self, book_id: int) -> dict[str, str | bool]: ...
+
+    @abstractmethod
+    async def send_book_to_email(
+        self,
+        *,
+        bucket: str,
+        file_key: str,
+        to: str,
+        subject: str,
+        text: str,
+    ) -> dict[str, str]: ...

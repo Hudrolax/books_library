@@ -9,6 +9,7 @@ import unicodedata
 import zipfile
 
 from domain.exceptions import ValueException
+from domain.interfaces.email_sender import IEmailSender
 from domain.interfaces.storage import IFileStorage
 
 from ..interfaces.book_ifaces import IBookRepoProtocol, IBookService
@@ -25,12 +26,14 @@ class BookService(IBookService):
         self,
         repository: IBookRepoProtocol,
         storage: IFileStorage,
+        email_sender: IEmailSender,
         *,
         archives_path: Path,
         s3_bucket: str,
     ) -> None:
         self.repository = repository
         self.storage = storage
+        self.email_sender = email_sender
         self.archives_path = archives_path
         self.s3_bucket = s3_bucket
 
@@ -100,6 +103,31 @@ class BookService(IBookService):
                 await self.storage.upload_file(key=object_key, path=extracted_path, content_type=content_type)
 
         return {"bucket": self.s3_bucket, "key": object_key, "existed": existed}
+
+    async def send_book_to_email(
+        self,
+        *,
+        bucket: str,
+        file_key: str,
+        to: str,
+        subject: str,
+        text: str,
+    ) -> dict[str, str]:
+        # Книгу можно отправлять только после экспорта в S3: проверяем, что файл действительно там есть.
+        if not await self.storage.file_exists(key=file_key):
+            raise ValueException(
+                "Файл книги не найден в S3. Сначала вызови export_book_to_s3 "
+                "и используй из его ответа bucket и key."
+            )
+
+        message = await self.email_sender.send_book(
+            bucket=bucket,
+            file_key=file_key,
+            to=to,
+            subject=subject,
+            text=text,
+        )
+        return {"detail": message}
 
     @staticmethod
     def _transliterate_cyrillic(value: str) -> str:

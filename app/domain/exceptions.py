@@ -45,6 +45,10 @@ class StorageUnavailableError(ServiceException):
     pass
 
 
+class EmailSendError(ServiceException):
+    pass
+
+
 class MessageRouterException(DomainException):
     pass
 
